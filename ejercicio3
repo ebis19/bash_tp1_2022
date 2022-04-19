@@ -1,0 +1,215 @@
+#!/bin/bash 
+
+#-----------------------Inicio Encabezado------------------------------##
+# Nombre Script: "ejercicio3.sh"
+# Número Trabajo Practico: 1 
+# Número Ejercicio: 3
+# Tipo: 1° Entrega
+# Integrantes Grupo :
+#
+#   Apellido y Nombre                               DNI
+#   ---------------------                           ----------           
+#   Feito Gustavo                                   27.027.190
+#     
+#
+##-----------------------Fin del Encabezado-----------------------------##
+
+seguir=0
+paramsNohup="$0 $* -param 1"
+
+Ayuda()
+{
+    echo "Renombrador automatico de archivos"
+    echo "Este script monitoree los cambios de un determinado" 
+	echo "directorio en donde se encuentra la última versión"
+	echo "del código fuente"
+    echo "recibido utilizando un demonio."
+    echo "haciendo las acciones de: Listar, peso, compilar y publicar"
+    echo ""
+     
+    
+    echo "Parametros recibidos:"
+    echo "-c <directorio> : directorio donde se debe monitorear. (obligatorio)"
+    echo "-s <directorio> : de salida para la accion publicar,  no existe, crear uno nuevo."
+    echo "-a <liata de acciones> : posibles acciones: listar, peso, compilar y publicar"
+    echo "No se pueden pasar acciones a “-a” que no sean alguna de las listadas antes"
+	echo "-k: detiene la ejecucion del demonio."
+    echo "Ejemplo de ejecución:"
+	echo "./script.sh -c ../repo -a listar,peso"
+	echo "./script.sh -c repo -a listar,compilar,publicar -s salidas/publica"
+
+}
+
+#Ver si hay un demonio corriendo
+function sanityCheck {
+    q=`ps -ef | grep $0 | grep -v grep | awk '{print $2}' | wc -l`;
+    if [ $q -gt 2 ]; then
+        echo "Otra instancia del proceso demonio está corriendo";
+        exit 1
+   fi
+}
+
+
+# Funcion que recibe como parametro un directorio y concatena los archivos ubicados dentro del mismo
+funConcatenarEnDirectorio(){
+
+
+
+}
+
+# Verificar de parametros
+
+param="mal";
+count=0
+if (( $# == 0 ))
+then
+    param="-nada";
+    echo "Parametros insuficientes. Revise la ayuda."
+    exit;
+else
+    if [ "$1" = "--help" -o "$1" = "-?" -o "$1" = "-h" ]
+    then
+        Ayuda
+        exit;
+    fi
+
+    if (( $# < 1 ))
+    then
+        echo "Parametros insuficientes. Revise la ayuda."
+        Ayuda
+        exit;
+    fi
+
+    while [[ $# -gt 0 ]]; do 
+        CLAVE="$1"
+        case $CLAVE in
+            -c)
+                if [ -z "$2" ]
+                then
+                    echo "No introdujo un directorio."
+                    exit;
+                else
+                    DIRMONIT="$2"
+                fi
+                               
+                if [ -d "$DIRMONIT" ]
+                then
+                    sanityCheck
+                    if [ ! -w "$DIRMONIT" ]
+                    then
+                        echo "El directorio no tiene permiso de escritura. "
+                        exit
+                    fi
+                    shift # descartar argumento
+                else
+                    echo "La ruta: "$DIRMONIT""
+                    echo
+                    echo "No es valida."
+                    exit
+                fi
+            ;;
+            -a)
+                if [ -z "$2" ]
+                then
+                    echo "No introdujo algun valor."
+                    exit;
+                else
+                    lista="$2"
+					IFS=','
+					for n in $(cat "$lista" )
+					do
+						if [[ $n == "listar" ]] || [[ $n == "peso" ]] || [[ $n == "compilar" ]] || [[ $n == "publicar" ]]; then
+							valorLista[count]=$n
+							count=$(($count+1))
+						fi
+						else
+							echo "no es un valor valido de la lista, consultar ayuda"
+							exit 1 
+						fi
+					done
+                fi
+            ;;
+            -k)
+            #STOPDEM="$2" -- Validar si debo poner exit luego del kill
+            if [ $# -ne 1 ];
+            then
+                echo
+                echo "La cantidad de parametros es incorrecta."
+                exit 2
+            fi
+       
+                dpid=$(ps -ef |grep $0|grep -v $$ |grep -v "grep"|awk '{print($2)}')
+
+            if [ "$dpid" != "" ];
+            then
+                kill -9 $dpid
+                echo
+                echo "El proceso demonio se cerro con exito."
+                exit
+            else
+            echo
+            echo "No hay proceso demonio ejecutandose para cerrarlo."
+            exit
+            fi
+            #shift
+            ;;
+            -param) #lo uso para ejecutar nohup
+            seguir=1;
+            shift
+            ;;            
+            *)  # opción desconocida
+                if [ "$CLAVE" != "-d" -o "$CLAVE" != "-o" -o "$CLAVE" != "-s"]
+                then
+                    echo "Parametro desconocido: "$CLAVE""
+                    echo
+                    exit
+                fi
+            ;;
+        esac
+        shift # descartar argumento o parámetro
+    done
+   
+    if [ -z "$DIRMONIT" ]
+    then
+        echo "No se introdujo parametro obligatorio -c"
+        echo
+        exit
+    fi
+fi
+
+if [ $seguir -ne 1 ];
+then
+	nohup $paramsNohup &
+exit 1;
+fi
+
+
+# Para que coloque los archivos en el mismo directorio
+
+DIREXEC="$DIRMONIT"
+
+if [ -z "$DIRDEST" ]
+then
+    DIRDEST="$DIREXEC"
+    if [ ! -w "$DIRDEST" ]
+        then
+            echo " El directorio destino NO tiene permiso de escritura: "$DIRDEST""
+            exit
+        fi
+
+    echo "El directorio destino de las subcarpetas sera: "$DIRDEST""
+    echo
+fi
+
+
+#----- Inicio de monitoreo a carpeta ($FDIRMONIT)
+
+FDIRMONIT=$(readlink -f "$DIRMONIT")
+FDIRDEST=$(readlink -f "$DIRDEST")
+
+
+while [ true ];
+do
+    funConcatenarEnDirectorio $DIRMONIT $DIADESCARTAR
+    sleep 5
+done
