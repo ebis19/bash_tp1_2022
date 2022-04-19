@@ -1,45 +1,43 @@
 #!/bin/bash
 #leer parametros
-#parametros:
-#   -d: nombre del directorio de entrada donde se encuentran los archivos
-#   -h: ayuda
-#   -e: Sucursal excluida (opcional)
-#   -o: directorio de salida (opcional)
-directorio="./"
-directorio_salida="./"
-sucursal_excluida=""
-while getopts d:e:o:h opt; do
-    case $opt in
-        d)
-            directorio=$OPTARG
-            ;;
-        e)
-            sucursal_excluida=$OPTARG
-            ;;
-        o)
-            directorio_salida=$OPTARG
-            ;;
-        h)
-            echo "Uso: $0 -d directorio -e sucursal_excluida -o directorio_salida"
-            exit 0
-            ;;
-        \?)
-            echo "Uso: $0 -d directorio -e sucursal_excluida -o directorio_salida"
-            exit 1
-            ;;
-    esac
+#parámetros que puede recibir el script son:
+#--ext: ruta al archivo de configuración que posee el listado de extensiones de archivos a
+#analizar, será un archivo de texto plano con las extensiones separadas por ; (punto y coma).
+#Ejemplo: sh;cs;js;css
+#--coment : toma en cuenta las líneas comentadas en la comparación (estas comienzan por //
+#o #)•
+#--sincom: no toma en cuenta los comentarios.
+#Estos dos parámetros son excluyentes, no pueden estar juntos en una llamada al script.
+#--porc [NÚMERO ENTERO]: si la similitud entre archivos es mayor o igual al número pasado
+#se informan, sino se desestiman.
+#--salida ARCHIVO: Se solicita la salida a un archivo, caso contrario se muestra por pantalla
+#como cualquier comando. Debe estar formateada para ser legible y estética.
+#--help: muestra la ayuda del script.
+
+porc=50
+directorio="."
+salida="./salida.txt"
+extension="c"
+archivos=$(find ./ -iname "*.$extension" -type f -print)
+for arch1 in $archivos
+do
+    for arch2 in $archivos
+    do
+        if  [ $arch1 = "" ]
+        then
+            continue
+        fi
+        if [ "$arch1" != "$arch2" ]
+        then
+            cant_linea_archivo1=$(cat $arch1 | wc -l)
+            cant=$(grep -F -x -f $arch1 $arch2 | wc -l)
+            echo "$arch1 $arch2 $cant $cant_linea_archivo1"
+            porcentaje=$(echo "scale=0; $cant*100/($cant_linea_archivo1+1)" | bc -l)
+            if  [ $porcentaje -ge $porc ]
+            then
+                echo "El archivo $arch1 y $arch2 son $porcentaje similares"
+            fi
+        fi
+       
+    done
 done
-
-#csv to json
-productos=$(find $directorio -iname "*.csv" -type f ! -name "$sucursal_excluida.csv" -exec cat {} \;   |
-            awk '{print $1}' |
-            sed '1d' | sort |
-            awk -F "," 'BEGIN{OFS=",";} {arr[$1]+=$2} END {for (i in arr) {print i,arr[i]}}')
-
-productos_json=$(echo $productos | #convertir a json
-        sed 's/,/:/g' | #reemplazar comas por dos puntos
-        sed 's/ /, /g' | #remplazar espacios por comas
-        sed 's/^/{/g' | #agregar corchetes
-        sed 's/$/}/g') #agregar corchetes
-
-echo $productos_json > ./$directorio_salida/salida.json
