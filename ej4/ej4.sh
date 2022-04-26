@@ -52,15 +52,14 @@ do
  	case "$1" in
  		-h | --help) HELP=1 ; shift ;;
  		--ext ) extensiones=$2 ; shift 2;;
- 		--coment) coment=1 ; shift ;;
+ 		--coment ) coment=1 ; shift ;;
  		--sincom ) sincom=1 ; shift  ;;
  		-p | --porc) porc=$2; shift 2 ;;
-        --salida) salida=$2 shift 2 ;;
-        --dir) directorio=$2 shift 2 ;;
+        --salida) salida=$2 ; shift 2 ;;
+        --dir ) directorio=$2; shift 2 ;;
         --) shift; break ;;
  		*) echo "Unexpected option: $1 - this should not happen."
           			usage;;
-        
  	esac
 done
 
@@ -88,6 +87,7 @@ then
     usage
 fi
 
+echo $directorio
 if [ -z $directorio ]
 then
     echo "No se paso directorio"
@@ -136,18 +136,18 @@ comprobar_diferencias_entre_archivos(){
 # comprobar diferencias entre archivos de la misma extencion
 # comprobar_diferencia [extencion]
 comprobar_diferencias(){
-archivos=$(find $directorio -iname "*.$1" -type f -print)
-for arch1 in $archivos
-do
-    for arch2 in $archivos
+    archivos=$(find $directorio -iname "*.$1" -type f -print | awk '{print $0 }' )
+    for arch1 in $archivos
     do
-        if  [ $arch1 = "" ]
-        then
-            continue
+        for arch2 in $archivos
+        do
+            if  [ "$arch1" = "" ]
+            then
+                continue
         fi
         if [ "$arch1" != "$arch2" ]
         then
-            comprobar_diferencias_entre_archivos $arch1 $arch2
+            comprobar_diferencias_entre_archivos "$arch1" "$arch2"
         fi  
     done
 done
@@ -155,6 +155,7 @@ done
 
 
 validaciones
+
 extensiones=$(cat $extensiones| tr ";" "\n") #separo las extensiones
 for ext in $extensiones
 do
