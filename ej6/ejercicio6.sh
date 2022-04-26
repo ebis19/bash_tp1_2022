@@ -14,14 +14,23 @@ pathPapelera="${HOME}/mi_papelera.zip"
 listar () {
     declare -i cantArchivos=$(zipinfo "$pathPapelera" | grep ^-| wc -l)
     [ $cantArchivos == 0 ] && exit
-    lista="Nombre_del_Archivo Ubicación_Original\n---------------------------- --------------------------------------------------------\n"
-    for file in $(zipinfo -1 $pathPapelera)
-    do
+    lista="Nombre_del_Archivo\tUbicación_Original\n---------------------------- --------------------------------------------------------"
+
+    OLD_IFS="$IFS"
+    IFS=$'\n'
+    array=($(unzip -Z -1 $pathPapelera))
+    IFS="$OLD_IFS"
+
+    for I in `seq 0 1 $((${#array[*]}-1))`; do
+        #echo ${array[$I]}
+        file="${array[$I]}"
         file_name="${file##*/}"
         file_path="${file%/*}/"
-        lista="$lista\n${file_name} ${file_path}\n"
+        #echo $file_name
+        #echo $file_path
+        lista="$lista\n${file_name}\t\t${file_path}"
     done
-    echo -e $lista | column -t
+    echo -e $lista #| column -t
 }
 
 recuperar () {
@@ -42,19 +51,37 @@ recuperar () {
     then
         #echo "mas de uno"
         sum=1
-        for file in $(zipinfo -1 $pathPapelera | grep "$1")
-        do
+        # for file in $(zipinfo -1 $pathPapelera | grep "$1")
+        # do
+        #     file_name="${file##*/}"
+        #     file_path="${file%/*}/"
+        #     lista="$lista\n${sum} ${file_name} ${file_path}\n"
+        #     sum=$((${sum} + 1))
+        # done
+        # echo -e $lista | column -t
+
+        OLD_IFS="$IFS"
+        IFS=$'\n'
+        array=($(unzip -Z -1 $pathPapelera))
+        IFS="$OLD_IFS"
+
+        for I in `seq 0 1 $((${#array[*]}-1))`; do
+            #echo ${array[$I]}
+            file="${array[$I]}"
             file_name="${file##*/}"
             file_path="${file%/*}/"
-            lista="$lista\n${sum} ${file_name} ${file_path}\n"
+            #echo $file_name
+            #echo $file_path
+            lista="$lista\n${sum}\t${file_name}\t${file_path}"
             sum=$((${sum} + 1))
         done
-        echo -e $lista | column -t
+        echo -e $lista #| column -t
+
         read -p "¿Qué archivo desea recuperar? " -n 1 -r
         echo 
         if [[ $REPLY =~ ^-?[0-9]+$ ]]
         then
-            array=($(zipinfo -1 $pathPapelera | grep "$1"))
+            #array=($(zipinfo -1 $pathPapelera | grep "$1"))
             
             recuperar="${array[$((${REPLY} - 1))]}"
 
@@ -99,7 +126,7 @@ if [[ $# -gt 0 ]]; then
                 exit 1
             ;;
             --recuperar)
-                recuperar $2
+                recuperar "$2"
                 exit 1
             ;;
             --vaciar)
@@ -107,7 +134,7 @@ if [[ $# -gt 0 ]]; then
                 exit 1
             ;;
             --eliminar)
-                eliminar $2
+                eliminar "$2"
                 exit 1
             ;;
             *)
